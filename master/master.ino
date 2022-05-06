@@ -1,95 +1,148 @@
-//#define ledPin 4
-//
-//int state = 0;
-//
-//
-//void setup() {
-//  pinMode(ledPin, OUTPUT);
-//  digitalWrite(ledPin, LOW);
-//  Serial.begin(9600); // Default communication rate of the Bluetooth module
-//}
-//
-//void loop() {
-// if(Serial.available() > 0){ // Checks whether data is comming from the serial port
-//    state = Serial.read(); // Reads the data from the serial port
-// }
-// // Controlling the LED
-// if (state != 0) {
-//  digitalWrite(ledPin, HIGH); // LED ON
-// }
-// else {
-//  digitalWrite(ledPin, LOW); // LED OFF
-//  
-// }
-//// Serial.println(state);
-//
-//// digitalWrite(ledPin, HIGH); // LED ON
-//
-// delay(3000);
-//}
-
 #include <FastLED.h>
-
 #define LED_PIN     7
 #define NUM_LEDS    150
-
 CRGB leds[NUM_LEDS];
 
-void setup() {
+//Sound Levels 
+//const int SILENT =  0;
+//#define SILENT 0
+//#define QUIET 1
+//#define AUDIBLE 2
+//#define LOUD 3
+//#define USER_AWAKE 4
 
+const int SILENT = 0;
+const int QUIET = 1;
+const int AUDIBLE = 2;
+const int LOUD = 3;
+const int USER_AWAKE = 4;
+
+int sound_state = 0; // var represeting current sound level  
+int prev_state = -1;
+
+const int DEBUG_PIN = 4;
+
+void setup() {
+  Serial.begin(9600); // default baud rate of HC-05
+  
+  pinMode(DEBUG_PIN, OUTPUT);
+  digitalWrite(DEBUG_PIN, LOW);
+  
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
   
+
+//  Serial.print("SILENT: ");
+//  Serial.println(SILENT);
 }
 
 void loop() {
-//  for(int i = 0; i < 150; i+=20)
-//  {
-//    leds[0+i] = CRGB(255, 0, 0);
-//    FastLED.show();
-//    delay(500);  
-//    leds[1+i] = CRGB(0, 255, 0);
-//    FastLED.show();
-//    delay(500);
-//    leds[i+2] = CRGB(0, 0, 255);
-//    FastLED.show();
-//    delay(500);
-//    leds[i+5] = CRGB(150, 0, 255);
-//    FastLED.show();
-//    delay(500);
-//    leds[i+9] = CRGB(255, 200, 20);
-//    FastLED.show();
-//    delay(500);
-//    leds[i+14] = CRGB(85, 60, 180);
-//    FastLED.show();
-//    delay(500);
-//    leds[i+19] = CRGB(50, 255, 20);
-//    FastLED.show();
-//    delay(500);
-//  }
 
-//  for(int i = 0; i < 150; i+=5)
-//  {
-//    leds[i] = CRGB(255, 0, 0);
-//    FastLED.show();
-////    delay(500);  
-//    leds[i+1] = CRGB(0, 255, 0);
-//    FastLED.show();
-////    delay(500);
-//    leds[i+2] = CRGB(0, 0, 255);
-//    FastLED.show();
-////    delay(500);
-//    leds[i+3] = CRGB(150, 0, 255);
-//    FastLED.show();
-////    delay(500);
-//    leds[i+4] = CRGB(255, 255, 0);
-//    FastLED.show();
-////    delay(500);
-//
-//  }
+    // read data from serial port
+   if(Serial.available() > 0){ 
+      sound_state = Serial.read(); 
+//      sound_state = Serial.readString().toInt();
 
-  for(int i = 0; i < 150; i++)
+//      if(sound_state == USER_AWAKE){
+//        Serial.println("BUTTON Press Transmitted");
+//        digitalWrite(DEBUG_PIN, HIGH);
+//        delay(400);
+//        digitalWrite(DEBUG_PIN, LOW);
+//      }
+
+
+      for(int i = 0; i < sound_state; i++){
+        digitalWrite(DEBUG_PIN, HIGH);
+        delay(1000);
+        digitalWrite(DEBUG_PIN, LOW);
+      }
+//      sound_state = USER_AWAKE;
+//      Serial.println("DATA FOUND");
+//      Serial.println(sound_state);
+   }
+
+//        Serial.println(sound_state);
+//        Serial.println(USER_AWAKE);
+
+
+      // Flash all LEDS red, Priority Check
+    if(sound_state == USER_AWAKE)
+    {
+      for(int i = 0; i < 2; i+=1)
+      {
+          // flash on and off
+          for(int i = 0; i < 150; i+=1)
+          {
+            
+            leds[i] = CRGB(255, 0, 0);
+            FastLED.show();
+          }
+          for(int i = 150; i >= 0; i-=1)
+          {
+            leds[i] = CRGB(0, 0, 0);
+            FastLED.show();
+          }
+      }
+      sound_state = SILENT; // reset 
+    }
+    
+  
+  // Update Led's when state changes
+  if(sound_state != prev_state )// || sound_state >= AUDIBLE )
   {
-    leds[i] = CRGB(255, 0, 0);
-    FastLED.show();
+    
+    
+      // Turn all LEDS off
+      if(sound_state == SILENT)
+      { 
+        for(int i = 0; i < 150; i+=1)
+        {
+          leds[i] = CRGB(0, 0, 0);
+          FastLED.show();
+          //delay(100);  
+        }
+      }
+      
+      
+      // Keep Left LEDS on at Green
+      if(sound_state == QUIET)
+      {
+        for(int i = 0; i < 60; i+=1)
+        {
+          leds[i] = CRGB(0, 255, 0);
+          FastLED.show();  
+          
+        }
+        delay(1000);
+      }
+      
+      // Flash Middle Edge with Blue Leds
+      if(sound_state == AUDIBLE)
+      {
+        for(int i = 0; i < 30; i+=1)
+        {
+          // flash on and off
+          leds[60+i] = CRGB(0, 0, 0); 
+//          delay(200);
+          leds[60+i] = CRGB(0, 0, 255);
+          FastLED.show();
+        }
+      }
+      
+      // Flash Right Edge with RED Leds at a faster rate
+      if(sound_state == LOUD)
+      {
+        for(int i = 0; i < 60; i+=1)
+        {
+          // flash on and off
+          leds[90+i] = CRGB(0, 0, 0); 
+//          delay(200);
+          leds[90+i] = CRGB(255, 0, 0);
+          FastLED.show();
+        }
+      }
+
   }
+
+  prev_state = sound_state;
+
 }
